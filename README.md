@@ -50,6 +50,9 @@ ignore_minimal = no
 # Only switch within the current virtual desktops: yes/no/auto
 only_current_desktop = auto
 
+# Only switch windows on the current monitor: yes/no
+only_current_monitor = no
+
 [switch-apps]
 
 # Whether to enable switching apps
@@ -63,6 +66,9 @@ ignore_minimal = no
 
 # Only switch apps within the current virtual desktops: yes/no/auto
 only_current_desktop = auto
+
+# Only switch apps on the current monitor: yes/no
+only_current_monitor = no
 ```
 
 ## Running as Administrator (Optional)

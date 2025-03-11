@@ -22,11 +22,13 @@ pub struct Config {
     pub switch_windows_blacklist: HashSet<String>,
     pub switch_windows_ignore_minimal: bool,
     switch_windows_only_current_desktop: Option<bool>,
+    switch_windows_only_current_monitor: Option<bool>,
     pub switch_apps_enable: bool,
     pub switch_apps_hotkey: Hotkey,
     pub switch_apps_ignore_minimal: bool,
     pub switch_apps_override_icons: IndexMap<String, String>,
     switch_apps_only_current_desktop: Option<bool>,
+    switch_apps_only_current_monitor: Option<bool>,
 }
 
 impl Default for Config {
@@ -44,12 +46,14 @@ impl Default for Config {
             switch_windows_blacklist: Default::default(),
             switch_windows_ignore_minimal: false,
             switch_windows_only_current_desktop: None,
+            switch_windows_only_current_monitor: None,
             switch_apps_enable: false,
             switch_apps_hotkey: Hotkey::create(SWITCH_APPS_HOTKEY_ID, "switch apps", "alt + tab")
                 .unwrap(),
             switch_apps_ignore_minimal: false,
             switch_apps_override_icons: Default::default(),
             switch_apps_only_current_desktop: None,
+            switch_apps_only_current_monitor: None,
         }
     }
 }
@@ -103,6 +107,12 @@ impl Config {
             {
                 conf.switch_windows_only_current_desktop = Some(v);
             }
+            if let Some(v) = section
+                .get("only_current_monitor")
+                .and_then(Config::to_bool)
+            {
+                conf.switch_windows_only_current_monitor = Some(v);
+            }
         }
         if let Some(section) = ini_conf.section(Some("switch-apps")) {
             if let Some(v) = section.get("enable").and_then(Config::to_bool) {
@@ -133,6 +143,12 @@ impl Config {
                 .and_then(Config::to_bool)
             {
                 conf.switch_apps_only_current_desktop = Some(v);
+            }
+            if let Some(v) = section
+                .get("only_current_monitor")
+                .and_then(Config::to_bool)
+            {
+                conf.switch_apps_only_current_monitor = Some(v);
             }
         }
         Ok(conf)
@@ -168,6 +184,18 @@ impl Config {
     pub fn switch_windows_only_current_desktop(&self) -> bool {
         self.switch_windows_only_current_desktop
             .unwrap_or_else(Self::system_switcher_only_current_desktop)
+    }
+
+    /// Whether the user has configured window switching to include windows on other monitors.
+    /// Default is false (include all monitors) if not configured.
+    pub fn switch_windows_only_current_monitor(&self) -> bool {
+        self.switch_windows_only_current_monitor.unwrap_or(false)
+    }
+
+    /// Whether the user has configured app switching to include windows on other monitors.
+    /// Default is false (include all monitors) if not configured.
+    pub fn switch_apps_only_current_monitor(&self) -> bool {
+        self.switch_apps_only_current_monitor.unwrap_or(false)
     }
 
     fn system_switcher_only_current_desktop() -> bool {

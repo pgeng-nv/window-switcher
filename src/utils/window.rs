@@ -86,6 +86,30 @@ pub fn get_moinitor_rect() -> RECT {
     }
 }
 
+pub fn get_current_monitor_from_cursor() -> windows::Win32::Graphics::Gdi::HMONITOR {
+    unsafe {
+        let mut cursor = POINT::default();
+        let _ = GetCursorPos(&mut cursor);
+        MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST)
+    }
+}
+
+pub fn is_window_on_monitor(hwnd: HWND, hmonitor: windows::Win32::Graphics::Gdi::HMONITOR) -> bool {
+    use windows::Win32::Graphics::Gdi::MonitorFromWindow;
+    use windows::Win32::Graphics::Gdi::MONITOR_DEFAULTTONULL;
+    
+    unsafe {
+        let window_monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);
+        // If window_monitor is NULL, the window is not visible on any display monitor
+        if window_monitor.is_invalid() {
+            return false;
+        }
+        
+        // Compare the window's monitor handle with the target monitor handle
+        window_monitor == hmonitor
+    }
+}
+
 pub fn get_window_size(hwnd: HWND) -> (i32, i32) {
     let mut placement = WINDOWPLACEMENT::default();
     let _ = unsafe { GetWindowPlacement(hwnd, &mut placement) };
@@ -211,20 +235,39 @@ pub fn set_window_user_data(hwnd: HWND, ptr: isize) -> isize {
 pub fn list_windows(
     ignore_minimal: bool,
     only_current_desktop: bool,
+    only_current_monitor: bool,
 ) -> Result<IndexMap<String, Vec<(HWND, String)>>> {
     let mut result: IndexMap<String, Vec<(HWND, String)>> = IndexMap::new();
     let mut hwnds: Vec<HWND> = Default::default();
     unsafe { EnumWindows(Some(enum_window), LPARAM(&mut hwnds as *mut _ as isize)) }
         .map_err(|e| anyhow!("Fail to get windows {}", e))?;
+    
+    // Get current monitor if needed for filtering
+    let current_monitor = if only_current_monitor {
+        Some(get_current_monitor_from_cursor())
+    } else {
+        None
+    };
+    
     let mut valid_hwnds = vec![];
     let mut owner_hwnds = vec![];
     for hwnd in hwnds.iter().cloned() {
         let (is_visible, is_iconic, is_tool) = get_window_state(hwnd);
+        
+        // Check if the window is on the current monitor if that filter is enabled
+        let is_on_current_monitor = if let Some(monitor) = current_monitor {
+            !only_current_monitor || is_window_on_monitor(hwnd, monitor)
+        } else {
+            true
+        };
+        
         let ok = is_visible
             && (if ignore_minimal { !is_iconic } else { true })
             && !is_tool
             && !is_cloaked_window(hwnd, only_current_desktop)
-            && !is_small_window(hwnd);
+            && !is_small_window(hwnd)
+            && is_on_current_monitor;
+            
         if ok {
             let title = get_window_title(hwnd);
             if !title.is_empty() && title != "Windows Input Experience" {
