@@ -1,0 +1,20 @@
+This session implemented a "monitor-specific window switching" feature to allow users to switch only between windows on their current monitor.
+
+Key changes:
+1. Added utility functions to detect which monitor a window is on:
+   - get_current_monitor_from_cursor(): Gets monitor handle based on cursor location
+   - is_window_on_monitor(): Determines if a window is displayed on a specific monitor
+
+2. Added configuration options to enable monitor-specific filtering:
+   - switch_windows_only_current_monitor and switch_apps_only_current_monitor
+   - Added corresponding getter methods with appropriate defaults
+
+3. Modified list_windows() to filter based on monitor:
+   - Added parameter to control monitor filtering
+   - Updated calls in switch_windows() and switch_apps() methods
+
+4. Updated config files:
+   - Added new options to window-switcher.ini with documentation
+   - Updated README.md to document the new features
+
+The implementation allows users to conveniently switch between windows only on their current monitor instead of across all monitors.
